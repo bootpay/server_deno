@@ -1,0 +1,39 @@
+{
+  "name": "@bootpay/backend-deno",
+  "version": "1.0.0",
+  "description": "Bootpay Server Side Package for Deno",
+  "types": "dist/bootpay.d.ts",
+  "main": "dist/index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build": "rm -rf ./dist && tsc --build && cp ./package.json dist/package.json &&  rm -rf ./dist/src && cp ./README.md dist/",
+    "clear": "tsc --build --clean"
+  },
+  "dependencies": {
+    "axios": "^0.26.1"
+  },
+  "devDependencies": {
+    "ts-node": "^10.7.0",
+    "typescript": "^4.7.4",
+    "@types/node": "^18.6.2"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/bootpay/backend-deno"
+  },
+  "keywords": [
+    "결제",
+    "payment",
+    "결제연동",
+    "PG연동",
+    "PG",
+    "부트페이",
+    "bootpay"
+  ],
+  "author": "Bootpay",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://bootpay.channel.io/"
+  },
+  "homepage": "https://www.bootpay.co.kr"
+}

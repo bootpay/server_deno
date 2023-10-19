@@ -1,4 +1,4 @@
-import axiod from "https://deno.land/x/axiod/mod.ts"
+import axiod, { AxiosRequestConfig } from "https://deno.land/x/axiod/mod.ts"
 
 export interface AccessTokenResponseParameters {
     expire_in: number
@@ -411,7 +411,7 @@ export const BootpayClient = () => {
                 if (error.response !== undefined) {
                     return Promise.reject(error.response.data)
                 } else {
-                    if (Bootpay.debug) {
+                    if (this.debug) {
                         throw error
                     } else {
                         return Promise.reject({
@@ -422,8 +422,44 @@ export const BootpayClient = () => {
                 }
             })
         },
-        getApiUrl(uri: string) {
+        entrypoints(uri: string) {
             return [this.API_ENTRYPOINTS[this.config.mode], uri].join('/')
+        },
+
+        async get<T = any, D = any>(url: string, config?: AxiosRequestConfig<D>): Promise<T> {
+            try {
+                const response: T = await this.http.get(this.entrypoints(url), config)
+                return Promise.resolve(response)
+            } catch (e) {
+                return Promise.reject(e)
+            }
+        },
+
+        async post<T = any, D = any>(url: string, data?: D, config?: AxiosRequestConfig<D>): Promise<T> {
+            try {
+                const response: T = await this.http.post(this.entrypoints(url), data, config)
+                return Promise.resolve(response)
+            } catch (e) {
+                return Promise.reject(e)
+            }
+        },
+
+        async put<T = any, D = any>(url: string, data?: D, config?: AxiosRequestConfig<D>): Promise<T> {
+            try {
+                const response: T = await this.http.put(this.entrypoints(url), data, config)
+                return Promise.resolve(response)
+            } catch (e) {
+                return Promise.reject(e)
+            }
+        },
+
+        async delete<T = any, D = any>(url: string, config?: AxiosRequestConfig<D>): Promise<T> {
+            try {
+                const response: T = await this.http.delete(this.entrypoints(url), config)
+                return Promise.resolve(response)
+            } catch (e) {
+                return Promise.reject(e)
+            }
         },
         /**
          * Access Token을 가져오기
@@ -433,7 +469,7 @@ export const BootpayClient = () => {
         async getAccessToken(): Promise<AccessTokenResponseParameters> {
             try {
                 const { application_id, private_key } = this.config
-                const response                        = await this.http.post(this.getApiUrl('/request/token'), {
+                const response                        = await this.post('/request/token', {
                     application_id,
                     private_key
                 })
@@ -450,7 +486,7 @@ export const BootpayClient = () => {
          */
         async receiptPayment(receiptId: string): Promise<ReceiptResponseParameters> {
             try {
-                const repsonse = await this.http.get(this.getApiUrl(`receipt/${ receiptId }`))
+                const repsonse = await this.get(`receipt/${ receiptId }`)
                 return Promise.resolve(repsonse)
             } catch (e) {
                 return Promise.reject(e)
@@ -463,7 +499,7 @@ export const BootpayClient = () => {
          */
         async cancelPayment(cancelPayment: CancelPaymentParameters): Promise<ReceiptResponseParameters> {
             try {
-                const response = await this.http.post(this.getApiUrl(`cancel`), cancelPayment)
+                const response = await this.post(`cancel`, cancelPayment)
                 return Promise.resolve(response)
             } catch (e) {
                 return Promise.reject(e)
@@ -476,7 +512,7 @@ export const BootpayClient = () => {
          */
         async certificate(receiptId: string): Promise<CertificateResponseParameters> {
             try {
-                const response = await this.http.get(this.getApiUrl(`certificate/${ receiptId }`))
+                const response = await this.get(`certificate/${ receiptId }`)
                 return Promise.resolve(response)
             } catch (e) {
                 return Promise.reject(e)
@@ -489,8 +525,256 @@ export const BootpayClient = () => {
          */
         async confirmPayment(receiptId: string): Promise<ReceiptResponseParameters> {
             try {
-                const response = await this.http.post(this.getApiUrl(`receipt`), {
+                const response = await this.post(`receipt`, {
                     receipt_id: receiptId
+                })
+                return Promise.resolve(response)
+            } catch (e) {
+                return Promise.reject(e)
+            }
+        },
+        /**
+         *  빌링키 조회
+         * Comment by GOSOMI
+         * @date: 2023-10-19
+         */
+        async lookupSubscribeBillingKey(receiptId: string): Promise<SubscriptionBillingResponseParameters> {
+            try {
+                const response = await this.get(`subscribe/billing/${ receiptId }`)
+                return Promise.resolve(response)
+            } catch (e) {
+                return Promise.reject(e)
+            }
+        },
+
+        /**
+         * requestSubscribeBillingKey
+         * Comment by GOSOMI
+         * @param subscriptionBillingRequest: SubscriptionBillingRequestParameters
+         * @returns Promise<SubscriptionBillingResponseParameters>
+         */
+        async requestSubscribeBillingKey(subscriptionBillingRequest: SubscriptionBillingRequestParameters): Promise<SubscriptionBillingResponseParameters> {
+            try {
+                const response: SubscriptionBillingResponseParameters = await this.post<SubscriptionBillingResponseParameters>('request/subscribe', {
+                    ...subscriptionBillingRequest
+                })
+                return Promise.resolve(response)
+            } catch (e) {
+                return Promise.reject(e)
+            }
+        },
+
+        /**
+         * requestSubscribeCardPayment
+         * Comment by GOSOMI
+         * @param subscriptionCardRequest: SubscriptionCardPaymentRequestParameters
+         * @returns Promise<ReceiptResponseParameters>
+         */
+        async requestSubscribeCardPayment(subscriptionCardRequest: SubscriptionCardPaymentRequestParameters): Promise<ReceiptResponseParameters> {
+            try {
+                const response: ReceiptResponseParameters = await this.post<ReceiptResponseParameters>('subscribe/payment', {
+                    ...subscriptionCardRequest
+                })
+                return Promise.resolve(response)
+            } catch (e) {
+                return Promise.reject(e)
+            }
+        },
+
+        /**
+         * destroyBillingKey
+         * Comment by GOSOMI
+         * @param billingKey:string
+         * @returns Promise<DestroySubscribeResponseParameters>
+         */
+        async destroyBillingKey(billingKey: string): Promise<DestroySubscribeResponseParameters> {
+            try {
+                const response: DestroySubscribeResponseParameters = await this.delete<DestroySubscribeResponseParameters>(`subscribe/billing_key/${ billingKey }`)
+                return Promise.resolve(response)
+            } catch (e) {
+                return Promise.reject(e)
+            }
+        },
+
+        /**
+         * requestUserToken
+         * Comment by GOSOMI
+         * @param userTokenRequest:UserTokenRequestParameters
+         * @returns Promise<UserTokenResponseParameters>
+         */
+        async requestUserToken(userTokenRequest: UserTokenRequestParameters): Promise<UserTokenResponseParameters> {
+            try {
+                const response: UserTokenResponseParameters = await this.post<UserTokenResponseParameters>('request/user/token', {
+                    ...userTokenRequest
+                })
+                return Promise.resolve(response)
+            } catch (e) {
+                return Promise.reject(e)
+            }
+        },
+
+        /**
+         * subscribePaymentReserve
+         * Comment by GOSOMI
+         * @param subscribePaymentReserveRequest:SubscribePaymentReserveParameters
+         * @returns Promise<SubscribePaymentReserveResponse>
+         */
+        async subscribePaymentReserve(subscribePaymentReserveRequest: SubscribePaymentReserveParameters) {
+            try {
+                const response: SubscribePaymentReserveResponse = await this.post<SubscribePaymentReserveResponse>('subscribe/payment/reserve', {
+                    ...subscribePaymentReserveRequest
+                })
+                return Promise.resolve(response)
+            } catch (e) {
+                return Promise.reject(e)
+            }
+        },
+
+        /**
+         * SubscribeReserve Lookup
+         * Comment by GOSOMI
+         * @date: 2023-03-07
+         * @param reserveId: string
+         * @returns Promise<SubscribeLookupResponse>
+         */
+        async subscribePaymentReserveLookup(reserveId: string) {
+            try {
+                const response: SubscribePaymentLookupResponse = await this.get<SubscribePaymentLookupResponse>(`subscribe/payment/reserve/${ reserveId }`)
+                return Promise.resolve(response)
+            } catch (e) {
+                return Promise.reject(e)
+            }
+        },
+
+        /**
+         * cancelSubscribeReserve
+         * Comment by GOSOMI
+         * @param reserveId:string
+         * @returns Promise<CancelSubscribeReserveResponse>
+         */
+        async cancelSubscribeReserve(reserveId: string) {
+            try {
+                const response: CancelSubscribeReserveResponse = await this.delete<CancelSubscribeReserveResponse>(`subscribe/payment/reserve/${ reserveId }`)
+                return Promise.resolve(response)
+            } catch (e) {
+                return Promise.reject(e)
+            }
+        },
+
+        /**
+         * 배송시작 REST API 시작
+         * Comment by GOSOMI
+         * @date: 2022-06-14
+         */
+        async shippingStart(shippingRequest: ShippingRequestParameters): Promise<ReceiptResponseParameters | any> {
+            try {
+                const response: ReceiptResponseParameters = await this.put<ReceiptResponseParameters>(`escrow/shipping/start/${ shippingRequest.receipt_id }`, shippingRequest)
+                return Promise.resolve(response)
+            } catch (e) {
+                return Promise.reject(e)
+            }
+        },
+
+        /**
+         * 기존결제 현금영수증 발행 API
+         * Comment by GOSOMI
+         * @date: 2022-07-28
+         */
+        async cashReceiptPublishOnReceipt(cashReceiptPublishRequest: CashReceiptPublishOnReceiptParameters) {
+            try {
+                const response: ReceiptResponseParameters = await this.post<ReceiptResponseParameters>('request/receipt/cash/publish', cashReceiptPublishRequest)
+                return Promise.resolve(response)
+            } catch (e) {
+                return Promise.reject(e)
+            }
+        },
+
+        /**
+         * 기존 결제 현금영수증 발행 취소 API
+         * Comment by GOSOMI
+         * @date: 2022-08-09
+         */
+        async cashReceiptCancelOnReceipt(cashReceiptCancelRequest: CashReceiptCancelOnReceiptParameters) {
+            try {
+                const response: null = await this.delete<null>(`request/receipt/cash/cancel/${ cashReceiptCancelRequest.receipt_id }`, {
+                    params: cashReceiptCancelRequest
+                })
+                return Promise.resolve(response)
+            } catch (e) {
+                return Promise.reject(e)
+            }
+        },
+
+        /**
+         * 별건 현금영수증 발행하기
+         * Comment by GOSOMI
+         * @date: 2022-08-09
+         */
+        async requestCashReceipt(cashReceiptRequest: RequestCashReceiptParameters) {
+            try {
+                const response: ReceiptResponseParameters = await this.post<ReceiptResponseParameters>('request/cash/receipt', cashReceiptRequest)
+                return Promise.resolve(response)
+            } catch (e) {
+                return Promise.reject(e)
+            }
+        },
+
+        /**
+         * 별건 현금영수증 취소하기
+         * Comment by GOSOMI
+         * @date: 2022-08-09
+         */
+        async cancelCashReceipt(cancelCashReceiptRequest: CancelCashReceiptParameters) {
+            try {
+                const response: ReceiptResponseParameters = await this.delete<ReceiptResponseParameters>(`request/cash/receipt/${ cancelCashReceiptRequest.receipt_id }`, {
+                    params: cancelCashReceiptRequest
+                })
+                return Promise.resolve(response)
+            } catch (e) {
+                return Promise.reject(e)
+            }
+        },
+
+        /**
+         * 본인인증 REST API 요청
+         * Comment by GOSOMI
+         * @date: 2022-11-07
+         */
+        async requestAuthentication(authenticateRequest: RequestAuthenticateParameters) {
+            try {
+                const response: CertificateResponseParameters = await this.post<CertificateResponseParameters>('request/authentication', authenticateRequest)
+                return Promise.resolve(response)
+            } catch (e) {
+                return Promise.reject(e)
+            }
+        },
+
+        /**
+         * 본인인증 승인하기
+         * Comment by GOSOMI
+         * @date: 2022-11-07
+         */
+        async confirmAuthentication(receipt_id: string, otp: null | string = null) {
+            try {
+                const response: CertificateResponseParameters = await this.post<CertificateResponseParameters>('authenticate/confirm', {
+                    receipt_id,
+                    otp
+                })
+                return Promise.resolve(response)
+            } catch (e) {
+                return Promise.reject(e)
+            }
+        },
+
+        /**
+         * 본인인증 SMS 재전송
+         * Comment by GOSOMI
+         * @date: 2022-11-07
+         */
+        async realarmAuthentication(receipt_id: string) {
+            try {
+                const response: CertificateResponseParameters = await this.post<CertificateResponseParameters>('authenticate/realarm', {
+                    receipt_id
                 })
                 return Promise.resolve(response)
             } catch (e) {
